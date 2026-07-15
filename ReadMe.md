@@ -4,6 +4,7 @@ View the internals of a network, compute forward pass activations and visualise 
 # Setup
 ```
 virtualenv venv
+source venv/bin/activate
 pip install -r requirements.txt
 python server.py
 ```
