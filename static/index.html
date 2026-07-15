@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ONNX Activation Viewer</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <!-- ── App Header ── -->
+  <header class="app-header">
+    <h1 class="app-title">ONNX Activation Viewer</h1>
+    <div class="header-controls">
+      <span class="status-pill" id="status-pill" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-label">Idle</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- ── Main 3-Panel Layout ── -->
+  <main class="app-main">
+    <!-- Left: Node Tree Sidebar -->
+    <aside class="panel panel-tree" id="panel-tree">
+      <div class="panel-collapsed-bar" id="collapsed-tree-bar" hidden>
+        <button class="btn btn-icon panel-expand-btn" id="btn-expand-tree" aria-label="Expand Graph Nodes" title="Expand">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+      <div class="panel-header">
+        <h2 class="panel-title">Graph Nodes</h2>
+        <button class="btn btn-icon panel-toggle-btn" id="btn-collapse-tree" aria-label="Collapse Graph Nodes" title="Collapse">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+      </div>
+      <div class="panel-body">
+        <div class="tree-search-row">
+          <input type="text" class="tree-search-input" id="tree-search" placeholder="Filter nodes…" aria-label="Filter nodes" title="Filter the node tree by name (substring match). Matching nodes stay visible; the rest are hidden." />
+        </div>
+        <div class="tree-empty-state state-empty" id="tree-empty">
+          <p>Load a model to see its graph structure.</p>
+        </div>
+        <div class="tree-loading-state state-loading" id="tree-loading" hidden>
+          <div class="skeleton-list">
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+          </div>
+        </div>
+        <div class="tree-error-state state-error" id="tree-error" hidden>
+          <p class="error-text" id="tree-error-text"></p>
+        </div>
+        <!-- Collapsible Layers section (closed by default): holds the filter
+             controls + the full selectable-layer list. Expand to browse/filter. -->
+        <div class="tree-section" id="tree-layers-section">
+          <button type="button" class="tree-section-head" id="tree-layers-toggle" aria-expanded="false" aria-controls="tree-layers-body" title="Expand to browse and filter the model's selectable layers.">
+            <span class="tree-section-caret" aria-hidden="true">▶</span>
+            <span class="tree-section-title">Layers</span>
+            <span class="tree-section-count" id="tree-layers-count"></span>
+          </button>
+          <div class="tree-section-body" id="tree-layers-body" hidden>
+            <div class="tree-presets" id="tree-presets" hidden>
+              <div class="tree-filter-row">
+                <button class="btn btn-sm tree-preset-btn" data-preset="all" title="Clear the selection and all filters — show every activation layer in the cube.">All</button>
+                <label class="tree-filter-toggle" title="Hide layers whose activation is constant (dormant / dead units).">
+                  <input type="checkbox" id="tree-filter-dead"> Hide dormant
+                </label>
+              </div>
+              <div class="tree-optype-chips" id="tree-optype-chips" aria-label="Filter by op type"></div>
+              <div class="tree-filter-row">
+                <label class="tree-filter-slider" title="Per-layer hotspot threshold — hide activation points below this fraction of each layer's own max (0 = show all). Reveals where each layer fires, independent of absolute magnitude.">
+                  <span class="tree-filter-label">Energy</span>
+                  <input type="range" id="tree-filter-energy" min="0" max="1" step="0.01" value="0" aria-label="Per-layer energy hotspot threshold">
+                  <span class="tree-filter-value" id="tree-filter-energy-val">off</span>
+                </label>
+                <label class="tree-filter-slider" title="Restrict to an execution-order (depth) band. Full extent = off.">
+                  <span class="tree-filter-label">Depth</span>
+                  <input type="range" id="tree-filter-range-lo" min="0" max="1" step="1" value="0">
+                  <input type="range" id="tree-filter-range-hi" min="0" max="1" step="1" value="0">
+                  <span class="tree-filter-value" id="tree-filter-range-val">all</span>
+                </label>
+              </div>
+            </div>
+            <div class="tree-container" id="tree-container" hidden>
+              <!-- Node tree populated by tree.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Resize handle: tree ↔ center -->
+    <div class="resize-handle" id="handle-left" title="Drag to resize"></div>
+
+    <!-- Center: 3D Canvas -->
+    <section class="panel panel-canvas" id="panel-canvas">
+      <div class="canvas-toolbar">
+        <!-- Playback Controls (populated by controls.js) -->
+        <div class="playback-controls" id="playback-controls">
+          <button class="btn btn-icon" id="btn-rewind" disabled aria-label="Rewind to start" title="Rewind">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="11 19 2 12 11 5 11 19"></polygon>
+              <polygon points="22 19 13 12 22 5 22 19"></polygon>
+            </svg>
+          </button>
+          <button class="btn btn-icon btn-primary" id="btn-play-pause" disabled aria-label="Play" title="Play">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" id="icon-play">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" id="icon-pause" hidden>
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          </button>
+          <button class="btn btn-icon" id="btn-stop" disabled aria-label="Stop" title="Stop">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <rect x="5" y="5" width="14" height="14"></rect>
+            </svg>
+          </button>
+          <button class="btn btn-icon" id="btn-step-back" disabled aria-label="Step backward" title="Step backward">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="11 19 2 12 11 5 11 19"></polygon>
+              <polygon points="22 19 13 12 22 5 22 19"></polygon>
+            </svg>
+          </button>
+          <button class="btn btn-icon" id="btn-step-fwd" disabled aria-label="Step forward" title="Step forward">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="13 19 22 12 13 5 13 19"></polygon>
+              <polygon points="2 19 11 12 2 5 2 19"></polygon>
+            </svg>
+          </button>
+          <button class="btn btn-icon" id="btn-loop" disabled aria-label="Toggle loop" title="Loop" data-active="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M17 2l4 4-4 4"></path>
+              <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
+              <path d="M7 22l-4-4 4-4"></path>
+              <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
+            </svg>
+          </button>
+          <div class="scrubber-container">
+            <input type="range" class="scrubber" id="scrubber" min="0" max="0" value="0" step="1" disabled aria-label="Timeline scrubber" />
+            <span class="frame-counter" id="frame-counter">0 / 0</span>
+          </div>
+          <div class="speed-control">
+            <label for="speed-select" class="speed-label">Speed</label>
+            <select id="speed-select" class="select" disabled aria-label="Playback speed">
+              <option value="0.1">0.1×</option>
+              <option value="0.25">0.25×</option>
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+              <option value="6">6×</option>
+              <option value="8">8×</option>
+              <option value="10">10×</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-container" id="canvas-container">
+        <!-- Floating, draggable View-controls window -->
+        <div class="viz-floating" id="viz-floating" hidden>
+          <div class="viz-floating-header" id="viz-floating-header">
+            <span class="viz-floating-title">View</span>
+            <button class="btn btn-icon viz-floating-collapse" id="viz-floating-collapse" aria-label="Collapse view controls" title="Collapse">▾</button>
+          </div>
+          <div class="viz-floating-body" id="viz-floating-body">
+            <div class="viz-controls">
+              <div class="viz-row">
+                <label for="colormap-select" class="viz-label" title="Colour map used to encode each activation value as a point colour.">Colormap</label>
+                <select id="colormap-select" class="select" disabled aria-label="Colormap" title="Colour map used to encode each activation value as a point colour.">
+                  <option value="viridis" selected>Viridis</option>
+                  <option value="plasma">Plasma</option>
+                  <option value="inferno">Inferno</option>
+                  <option value="led">LED</option>
+                </select>
+              </div>
+              <div class="viz-row">
+                <label for="color-scale-select" class="viz-label" title="Per-layer normalises each layer to its own min/max; Global uses one range across all layers so values are comparable.">Scale</label>
+                <select id="color-scale-select" class="select" disabled aria-label="Colour scale" title="Per-layer normalises each layer to its own min/max; Global uses one range across all layers so values are comparable.">
+                  <option value="per-layer" selected>Per-layer</option>
+                  <option value="global">Global</option>
+                </select>
+              </div>
+              <div class="viz-row">
+                <label for="size-metric-select" class="viz-label" title="Which axis of each layer's activation tensor the slab depth represents: number of neurons, spatial size, or channel count.">Size</label>
+                <select id="size-metric-select" class="select" disabled aria-label="Slab size metric" title="Which axis of each layer's activation tensor the slab depth represents: number of neurons, spatial size, or channel count.">
+                  <option value="neurons" selected>Neurons</option>
+                  <option value="spatial">Spatial</option>
+                  <option value="channels">Channels</option>
+                </select>
+              </div>
+              <div class="viz-row">
+                <label for="point-size-slider" class="viz-label" title="Size of each point relative to its cell spacing — higher fills more of the grid cell.">Point Fill</label>
+                <input type="range" id="point-size-slider" class="scrubber" min="0.1" max="2" step="0.05" value="0.85" disabled aria-label="Point fill (× cell spacing)" title="Size of each point relative to its cell spacing — higher fills more of the grid cell." />
+              </div>
+              <div class="viz-row">
+                <label for="density-slider" class="viz-label" title="Number of points sampled per layer. Higher is denser and more detailed but slower to render.">Density</label>
+                <input type="range" id="density-slider" class="scrubber" min="200" max="200000" step="100" value="6000" disabled aria-label="Points per layer" title="Number of points sampled per layer. Higher is denser and more detailed but slower to render." />
+              </div>
+              <div class="viz-row viz-row-check">
+                <label class="checkbox-label" title="In playback mode, hide layers after the playhead so the current layer isn't occluded by upcoming ones. Past layers stay dimmed for context.">
+                  <input type="checkbox" id="hide-upcoming-check" disabled aria-label="Hide upcoming layers" />
+                  <span>Hide upcoming layers</span>
+                </label>
+              </div>
+              <div class="viz-row viz-row-check">
+                <label class="checkbox-label" title="Enable connection visualization: click a layer to show only its dataflow edges (including skip connections) as arcs, highlight its connected layers, and list them with an activation-similarity score per edge. Click a listed connector to jump to that layer.">
+                  <input type="checkbox" id="show-connections-check" disabled aria-label="Show layer connections" />
+                  <span>Show connections</span>
+                </label>
+              </div>
+            </div>
+
+            <hr class="viz-divider" />
+
+            <div class="viz-heatmap">
+              <div class="viz-heatmap-head">
+                <span class="viz-heatmap-title" id="viz-heatmap-title">Layer inspector</span>
+                <button class="btn btn-sm btn-secondary" id="viz-heatmap-drilldown" type="button" disabled title="Open the multi-dimensional drill-down for this layer (channel grid, PCA projection, per-channel strip).">Drill down</button>
+                <button class="btn btn-sm btn-secondary" id="viz-heatmap-save" type="button" disabled title="Save the inspected layer's activation grid as a PNG image.">Save as PNG</button>
+                <button class="btn btn-sm btn-secondary" id="viz-heatmap-watch" type="button" disabled title="Add this layer to the watch list (kept across inference passes).">☆ Watch</button>
+              </div>
+              <canvas class="viz-heatmap-canvas" id="viz-heatmap-canvas" hidden></canvas>
+              <p class="viz-heatmap-hint" id="viz-heatmap-hint">Click a layer in the cube to show its activation grid here.</p>
+            </div>
+
+            <div class="conn-info" id="conn-info" hidden></div>
+
+            <div class="watchlist" id="watchlist" hidden>
+              <div class="watchlist-head">
+                <span class="watchlist-title">Watch list</span>
+                <span class="watchlist-count" id="watchlist-count"></span>
+                <button class="btn btn-sm btn-secondary watchlist-clear" id="watchlist-clear" type="button" hidden title="Remove all watched layers.">Clear</button>
+              </div>
+              <div class="watchlist-empty" id="watchlist-empty">No watched layers. Inspect a layer and click ☆ Watch to pin it here.</div>
+              <div class="watchlist-body" id="watchlist-body"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="canvas-empty-state state-empty" id="canvas-empty">
+          <p>No visualization loaded.</p>
+          <p class="hint">Load a model and run inference to see activations.</p>
+        </div>
+        <div class="canvas-loading-state state-loading" id="canvas-loading" hidden>
+          <div class="spinner" aria-label="Loading"></div>
+          <p>Running inference…</p>
+        </div>
+        <div class="canvas-error-state state-error" id="canvas-error" hidden>
+          <p class="error-text" id="canvas-error-text"></p>
+          <button class="btn btn-secondary" id="canvas-error-retry">Retry</button>
+        </div>
+        <!-- Three.js canvas injected here by viewer3d.js -->
+      </div>
+
+      <!-- Frame info bar -->
+      <div class="frame-info-bar" id="frame-info-bar">
+        <span class="frame-info-label" id="frame-info-label">—</span>
+        <span class="frame-info-op" id="frame-info-op"></span>
+        <span class="frame-info-shape" id="frame-info-shape"></span>
+        <span class="frame-info-exec" id="frame-info-exec"></span>
+        <span class="frame-info-sampled" id="frame-info-sampled" hidden>sampling</span>
+        <span class="frame-info-uniform" id="frame-info-uniform" hidden>uniform</span>
+      </div>
+    </section>
+
+    <!-- Resize handle: center ↔ inference -->
+    <div class="resize-handle" id="handle-right" title="Drag to resize"></div>
+
+    <!-- Right: Inference & Output Panel -->
+    <aside class="panel panel-inference" id="panel-inference">
+      <div class="panel-collapsed-bar" id="collapsed-inference-bar" hidden>
+        <button class="btn btn-icon panel-expand-btn" id="btn-expand-inference" aria-label="Expand Inference" title="Expand">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+      </div>
+      <div class="panel-header">
+        <h2 class="panel-title">Inference</h2>
+        <button class="btn btn-icon panel-toggle-btn" id="btn-collapse-inference" aria-label="Collapse Inference" title="Collapse">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+      <div class="panel-body panel-body-scroll">
+        <!-- Model loading section -->
+        <section class="section">
+          <h3 class="section-title">Model</h3>
+          <div class="input-group">
+            <input type="file" class="file-input" id="model-file-input" accept=".onnx" aria-label="Model file" style="display:none;" />
+            <button class="btn btn-secondary" id="btn-load-model" title="Open the ONNX model file picker and parse the graph.">Load</button>
+          </div>
+          <div class="model-info" id="model-info" hidden>
+            <div class="model-name-row" title="Loaded model file">
+              <span class="model-name-label">Model</span>
+              <span class="model-name" id="info-model-name">—</span>
+            </div>
+            <dl class="info-grid">
+              <dt>Nodes</dt><dd id="info-num-nodes">—</dd>
+              <dt>Inputs</dt><dd id="info-num-inputs">—</dd>
+              <dt>Outputs</dt><dd id="info-num-outputs">—</dd>
+              <dt>Intermediate</dt><dd id="info-num-intermediate">—</dd>
+            </dl>
+          </div>
+        </section>
+
+        <!-- Inputs: per-input shape + data feeding -->
+        <section class="section" id="input-section" hidden>
+          <h3 class="section-title">Inputs</h3>
+          <p class="hint input-section-hint">Provide a file per input; inputs without a file use random data. Name files <code>&lt;input_name&gt;.npy</code> (or an image for 3-channel image inputs).</p>
+          <div id="input-shapes-container">
+            <!-- One row per input, populated by inference.js -->
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-resolve-inputs" title="Send the dynamic-dimension values you typed to the backend to compute concrete input shapes.">Resolve Shapes</button>
+        </section>
+
+        <!-- Inference controls -->
+        <section class="section" id="inference-section" hidden>
+          <h3 class="section-title">Run Inference</h3>
+          <div class="input-options">
+            <label class="checkbox-label" title="Feed every model input with random Gaussian noise. Overridden per-input by a chosen file or the Edit-modal source setting.">
+              <input type="checkbox" id="opt-random-input" checked />
+              <span>Random Gaussian input</span>
+            </label>
+            <label class="checkbox-label" title="Disable ONNX Runtime graph optimisations so every node in the exported graph appears as its own layer. Slower, but the cube matches the graph 1:1.">
+              <input type="checkbox" id="opt-preserve-nodes" />
+              <span>Preserve all nodes (disable optimization)</span>
+            </label>
+          </div>
+          <div class="input-group">
+            <label class="radio-label" title="Compute each layer's brightness from the mean of its activation values.">
+              <input type="radio" name="brightness-mode" value="mean" checked />
+              <span>Mean brightness</span>
+            </label>
+            <label class="radio-label" title="Compute each layer's brightness from its maximum activation value — emphasises sparse, strong activations.">
+              <input type="radio" name="brightness-mode" value="max" />
+              <span>Max brightness</span>
+            </label>
+          </div>
+          <button class="btn btn-primary" id="btn-run-inference" disabled title="Run the model on the current inputs and capture intermediate activations into the 3D view.">Run Inference</button>
+        </section>
+
+        <!-- Output tensor section -->
+        <section class="section" id="output-section" hidden>
+          <h3 class="section-title">Model Output</h3>
+          <div class="output-list" id="output-list">
+            <!-- Output tensors populated by inference.js -->
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ── Three.js + Modules (ES modules via import map) ── -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- App modules (ES modules) -->
+  <script type="module" src="/static/js/panels.js"></script>
+  <script type="module" src="/static/js/viewer3d.js"></script>
+  <script type="module" src="/static/js/controls.js"></script>
+  <script type="module" src="/static/js/tree.js"></script>
+  <script type="module" src="/static/js/heatmap_popup.js"></script>
+  <script type="module" src="/static/js/tensor_drilldown.js"></script>
+  <script type="module" src="/static/js/connections.js"></script>
+  <script type="module" src="/static/js/watchlist.js"></script>
+  <script type="module" src="/static/js/inference.js"></script>
+</body>
+</html>

@@ -1,0 +1,2198 @@
+/* ── ONNX Activation Viewer — styles.css ──
+   Minimal, content-first. Single accent (#3b82f6). Neutral gray ramp.
+   Whitespace as structure — no decorative borders.
+   Spacing: 4/8/12/16/24/32/48/64. Type: 12/14/16/20/24/32.
+*/
+
+/* ── Reset & Base ── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Accent */
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-active: #1d4ed8;
+  --accent-subtle: rgba(59, 130, 246, 0.10);
+
+  /* Neutral ramp (light theme) */
+  --bg: #ffffff;
+  --bg-secondary: #fafafa;
+  --bg-tertiary: #f5f5f5;
+  --bg-hover: #f0f0f0;
+  --text: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --text-inverse: #ffffff;
+
+  /* Semantic */
+  --error: #ef4444;
+  --error-bg: #fef2f2;
+  --success: #10b981;
+  --success-bg: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-bg: #fffbeb;
+
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* Type */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  /* Layout — panel widths & resize-handle tracks (driven by panels.js) */
+  --tree-w: 240px;
+  --inf-w: 320px;
+  --handle-left-w: 4px;
+  --handle-right-w: 4px;
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 2px var(--accent);
+}
+
+/* ── Dark theme ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d0d0d;
+    --bg-secondary: #141414;
+    --bg-tertiary: #1a1a1a;
+    --bg-hover: #242424;
+    --text: #e5e7eb;
+    --text-secondary: #9ca3af;
+    --text-tertiary: #6b7280;
+    --accent-subtle: rgba(59, 130, 246, 0.12);
+  }
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-6);
+  height: 56px;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+
+.app-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+/* ── Status pill ── */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.status-pill[data-state="active"] .status-dot {
+  background: var(--success);
+}
+
+.status-pill[data-state="loading"] .status-dot {
+  background: var(--warning);
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.status-pill[data-state="error"] .status-dot {
+  background: var(--error);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Main 3-panel layout ──
+   5 grid tracks: tree | handle | canvas | handle | inference.
+   The two handle tracks are resize gutters driven by --handle-*-w
+   (collapsed to 0 by panels.js). Canvas takes the flexible middle. */
+.app-main {
+  display: grid;
+  grid-template-columns: var(--tree-w) var(--handle-left-w) 1fr var(--handle-right-w) var(--inf-w);
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+  /* Side tracks slide smoothly when panels collapse/expand (panels.js). */
+  transition: grid-template-columns 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Panels ── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-tree {
+  background: var(--bg-secondary);
+}
+
+.panel-inference {
+  background: var(--bg-secondary);
+}
+
+.panel-canvas {
+  background: var(--bg);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-5) var(--sp-4) var(--sp-2);
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.panel-body-scroll {
+  padding: var(--sp-4) var(--sp-4) var(--sp-6);
+}
+
+/* ── Tree ── */
+.tree-container {
+  font-size: var(--text-xs);
+}
+
+.tree-node {
+  user-select: none;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-1) var(--sp-2);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  gap: var(--sp-1);
+  transition: background 0.1s;
+}
+
+.tree-row:hover {
+  background: var(--bg-hover);
+}
+
+.tree-row:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.tree-row.tree-row-active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.tree-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.tree-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-op-type {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.tree-children {
+  margin-left: var(--sp-3);
+}
+
+/* ── Canvas ── */
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-3) var(--sp-5);
+  flex-shrink: 0;
+}
+
+.canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The Three.js renderer canvas (and heatmap overlay) are full-bleed
+   background layers — absolutely positioned so they never compete with
+   the empty/loading/error state overlays for flex space. */
+.canvas-container > canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.frame-info-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.frame-info-label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.frame-info-op {
+  color: var(--accent);
+}
+
+.frame-info-shape {
+  color: var(--text-tertiary);
+}
+
+.frame-info-exec {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.frame-info-sampled {
+  color: var(--warning);
+  font-size: 10px;
+  padding: 2px var(--sp-2);
+  background: var(--warning-bg);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.frame-info-uniform {
+  color: var(--text-secondary);
+  font-size: 10px;
+  padding: 2px var(--sp-2);
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ── Loop button active state ── */
+.btn-loop[data-active="true"] {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+.btn-loop[data-active="true"]:hover {
+  background: var(--accent-hover);
+}
+
+/* ── Playback controls ── */
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+}
+
+.scrubber-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.scrubber {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.scrubber:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+}
+
+.scrubber::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+}
+
+.scrubber:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.scrubber:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--focus-ring);
+}
+
+.frame-counter {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-shrink: 0;
+}
+
+.speed-label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ── Buttons — ghost style ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s, opacity 0.12s;
+  min-height: 32px;
+  text-decoration: none;
+  color: var(--text);
+  background: transparent;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  padding: var(--sp-2);
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--accent-active);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+}
+
+.btn-sm {
+  padding: var(--sp-1) var(--sp-3);
+  font-size: var(--text-xs);
+  min-height: 28px;
+}
+
+/* ── Inputs — borderless ── */
+.input {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--text-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text);
+  min-height: 32px;
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.select {
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--text-xs);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text);
+  min-height: 28px;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.input-group {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  margin-bottom: var(--sp-3);
+}
+
+.input-group:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Checkbox / Radio ── */
+.checkbox-label,
+.radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  color: var(--text);
+}
+
+.checkbox-label input,
+.radio-label input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.checkbox-label:focus-within,
+.radio-label:focus-within {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.input-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+/* ── File upload ── */
+.file-input {
+  display: none;
+}
+
+.file-upload-label {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  transition: background 0.12s, color 0.12s;
+}
+
+.file-upload-label:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+/* ── Sections — spacing as structure ── */
+.section {
+  margin-bottom: var(--sp-6);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--sp-3);
+}
+
+/* ── Model info grid ── */
+.model-info {
+  margin-top: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.model-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--bg-secondary, rgba(255, 255, 255, 0.06));
+}
+.model-name-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.model-name {
+  font-size: var(--text-sm);
+  color: var(--accent, #5fd4ff);
+  font-weight: 600;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-1) var(--sp-4);
+  font-size: var(--text-xs);
+}
+
+.info-grid dt {
+  color: var(--text-secondary);
+}
+
+.info-grid dd {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ── Output list ── */
+.output-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.output-item {
+  padding: var(--sp-4);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.output-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--sp-1);
+}
+
+.output-shape {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.output-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-1) var(--sp-4);
+  margin-top: var(--sp-2);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.output-stat-label {
+  color: var(--text-secondary);
+}
+
+.output-stat-value {
+  text-align: right;
+  color: var(--text);
+}
+
+.output-truncated {
+  margin-top: var(--sp-2);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ── Dynamic input shape fields ── */
+.input-shape-item {
+  margin-bottom: var(--sp-4);
+}
+
+.input-shape-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--sp-1);
+}
+
+.input-shape-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
+}
+
+.input-shape-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  min-width: 80px;
+}
+
+.input-dim {
+  width: 60px;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--text-xs);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.input-dim:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Per-input data-feeding rows (Inputs section) */
+.input-section-hint {
+  margin: 0 0 var(--sp-2) 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.input-section-hint code {
+  background: var(--bg-tertiary);
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
+.input-feed-row {
+  flex-wrap: wrap;
+  row-gap: var(--sp-1);
+}
+.input-feed-row .input-shape-label {
+  min-width: 0;
+  flex: 1 1 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.input-file-label {
+  margin-left: auto;
+}
+.input-file-name {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.input-source-badge {
+  font-size: var(--text-xs);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.input-source-badge.file { color: var(--success); }
+.input-source-badge.random { color: var(--text-secondary); }
+.input-source-badge.config { color: var(--accent); }
+
+/* ── Per-input Edit modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.edit-modal {
+  position: fixed;
+  z-index: 20;
+  width: 360px;
+  max-width: calc(100vw - 16px);
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+}
+.edit-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--bg-tertiary);
+  cursor: grab;
+  user-select: none;
+}
+.edit-modal-header:active { cursor: grabbing; }
+.edit-modal-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.edit-modal-close {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1;
+}
+.edit-modal-body {
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+.edit-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.edit-modal-summary {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.edit-modal-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.edit-modal-hint {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.edit-modal-hw {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.edit-modal-hw .input-dim {
+  width: 70px;
+}
+.edit-modal-imageopts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-2);
+}
+.edit-modal-imageopts .select {
+  width: auto;
+  min-width: 110px;
+}
+.edit-modal-textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs);
+}
+.edit-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  margin-top: var(--sp-1);
+}
+.input-edit-btn {
+  margin-left: var(--sp-1);
+}
+
+/* ── Multi-dimensional drill-down modal ── */
+.drilldown-modal {
+  width: min(760px, calc(100vw - 24px));
+}
+.drilldown-body {
+  gap: var(--sp-2);
+}
+.drilldown-axisbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+.drilldown-axisrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-2);
+}
+.drilldown-axis {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm, 6px);
+  padding: 2px 6px;
+}
+.drilldown-axis-name {
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+}
+.drilldown-axis-role {
+  min-width: 92px;
+  width: auto;
+}
+.drilldown-autobtn {
+  align-self: flex-start;
+}
+.drilldown-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.drilldown-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+}
+.drilldown-section-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+/* Collapsible info toggles (roles explainer + per-section explainers). */
+.drilldown-info-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.drilldown-section-head .drilldown-info-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.drilldown-info-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.drilldown-help-btn {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm, 6px);
+}
+.drilldown-help-btn:hover {
+  color: var(--text-secondary);
+}
+.drilldown-info {
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--text-tertiary);
+  padding: 2px 0 0;
+}
+.drilldown-info b {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.drilldown-info code {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+}
+/* Channel grid: responsive small-multiples. */
+.drilldown-channelgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: var(--sp-1);
+  align-items: start;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 2px;
+}
+.drilldown-channelcell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+/* Uniform 88px tile box; object-fit:contain scales small patches (e.g. 16×16,
+ * 1×1) up to fill it and contains large/tall channels without distortion.
+ * image-rendering:pixelated keeps the upscaling crisp (blocky pixels). */
+.drilldown-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 2px;
+}
+.drilldown-canvas-cap {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.drilldown-scatter {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 2px;
+  background: var(--bg-primary, #000);
+}
+.drilldown-strip {
+  width: 100%;
+  height: 28px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 2px;
+}
+/* PCA outlier/brush controls (in the scatter section head). */
+.drilldown-scatter-ctrl {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.drilldown-scatter-k {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.drilldown-scatter-k input[type=range] { width: 80px; accent-color: var(--accent, #5fd4ff); }
+.drilldown-scatter-k-val {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 22px;
+}
+.drilldown-scatter-only {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.drilldown-scatter-clear { font-size: 11px; padding: 2px 8px; }
+/* Highlighted channel tile (from PCA selection/outliers). */
+.drilldown-channelcell-hl .drilldown-canvas {
+  outline: 2px solid var(--accent, #5fd4ff);
+  outline-offset: 1px;
+}
+.drilldown-loading,
+.drilldown-error,
+.drilldown-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  padding: var(--sp-2);
+}
+.drilldown-error {
+  color: var(--danger, #d33);
+}
+
+/* ── Channel preview lightbox (blow-up + pixel-peep + PNG export) ── */
+.channel-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;                 /* above the drilldown .edit-modal (z-index 20) */
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.channel-preview-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  width: min(900px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow: hidden;
+}
+.channel-preview-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+.channel-preview-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.channel-preview-zoom { width: auto; }
+.channel-preview-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: var(--sp-3);
+  background: var(--bg-primary, #000);
+}
+.channel-preview-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 1px solid var(--bg-tertiary);
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+.channel-preview-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--bg-tertiary);
+}
+.channel-preview-counter {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  min-width: 5em;
+  text-align: center;
+}
+.channel-preview-hint {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ── Layer inspector (heatmap) inside the View controls panel ── */
+.viz-divider {
+  border: none;
+  border-top: 1px solid var(--bg-tertiary);
+  margin: var(--sp-2) 0 var(--sp-1);
+}
+.viz-heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  /* Reserve space for the preview so the panel is already tall and the
+   * image lands in a stable area beneath the options (no layout jump when a
+   * layer is clicked). */
+  min-height: 220px;
+  justify-content: center;
+}
+.viz-heatmap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+}
+.viz-heatmap-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  flex: 1;
+  min-width: 0;
+}
+.viz-heatmap-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 1px solid var(--bg-tertiary);
+  max-width: 100%;
+  align-self: center;
+}
+.viz-heatmap-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin: 0;
+  text-align: center;
+}
+
+/* ── States (empty, loading, error) ── */
+[hidden] {
+  display: none !important;
+}
+
+.state-empty,
+.state-loading,
+.state-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--sp-8) var(--sp-4);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.state-empty .hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--sp-2);
+}
+
+.state-error .error-text {
+  color: var(--error);
+  margin-bottom: var(--sp-3);
+}
+
+/* ── Skeleton loading ── */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+}
+
+.skeleton-row {
+  height: 16px;
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-hover) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Spinner ── */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--bg-tertiary);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: var(--sp-3);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Responsive: ≤ 700px — stack vertically ──
+   Side panels own their widths via inline CSS vars (panels.js), so the
+   narrow-side-panels behaviour lives there. Here we collapse the grid
+   to a single column and drop the resize gutters entirely. */
+@media (max-width: 700px) {
+  html,
+  body {
+    overflow: auto;
+  }
+
+  body {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .app-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 400px auto;
+    overflow: visible;
+  }
+
+  .resize-handle {
+    display: none;
+  }
+
+  .panel-tree {
+    max-height: 200px;
+  }
+
+  .panel-canvas {
+    min-height: 400px;
+  }
+
+  .playback-controls {
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+
+  .scrubber-container {
+    width: 100%;
+    order: 5;
+  }
+}
+
+/* ── Responsive: ≤ 480px — very small screens ── */
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0 var(--sp-3);
+  }
+
+  .app-main {
+    grid-template-rows: auto 300px auto;
+  }
+
+  .panel-canvas {
+    min-height: 300px;
+  }
+
+  .playback-controls {
+    justify-content: center;
+  }
+
+  .speed-control {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Tree Search ── */
+.tree-search-row {
+  padding: var(--sp-2) var(--sp-2) 0;
+}
+
+.tree-search-input {
+  width: 100%;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--text-xs);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text);
+  outline: none;
+  transition: box-shadow 0.15s;
+}
+
+.tree-search-input:focus {
+  box-shadow: var(--focus-ring);
+}
+
+.tree-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ── Tree Presets ── */
+.tree-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  padding: var(--sp-2);
+}
+
+.tree-preset-btn {
+  font-size: 11px;
+  padding: 2px var(--sp-2);
+  white-space: nowrap;
+}
+
+/* ── Collapsible Layers section (filters + selectable layer list) ── */
+.tree-section {
+  margin-top: var(--sp-1);
+}
+.tree-section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  width: 100%;
+  padding: var(--sp-1) var(--sp-2);
+  background: transparent;
+  border: 1px solid var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+.tree-section-head:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-tertiary);
+}
+.tree-section-caret {
+  display: inline-flex;
+  width: 14px;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  transition: transform 0.12s;
+}
+.tree-section-head[aria-expanded="true"] .tree-section-caret {
+  transform: rotate(90deg);
+}
+.tree-section-title {
+  flex: 1;
+}
+.tree-section-count {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.tree-section-body {
+  margin-top: var(--sp-1);
+}
+
+/* ── Data-driven filters (op-type chips, dead, energy, depth range) ── */
+.tree-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-2);
+}
+.tree-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  margin-left: auto;
+}
+.tree-filter-toggle input {
+  margin: 0;
+}
+.tree-optype-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tree-optype-chip {
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--bg-tertiary);
+  background: var(--bg-secondary, var(--bg-primary, #111));
+  color: var(--text-tertiary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.tree-optype-chip:hover {
+  color: var(--text-secondary);
+  border-color: var(--text-tertiary);
+}
+.tree-optype-chip.active {
+  background: var(--accent, #5fd4ff);
+  color: #06121a;
+  border-color: var(--accent, #5fd4ff);
+  font-weight: 600;
+}
+.tree-filter-slider {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.tree-filter-label {
+  color: var(--text-tertiary);
+}
+.tree-filter-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  min-width: 3rem;
+}
+.tree-filter-slider input[type="range"] {
+  width: 110px;
+  accent-color: var(--accent, #5fd4ff);
+}
+
+/* ── Tree row selection (click-to-highlight, no checkboxes) ── */
+/* A selected leaf's row is highlighted with an accent fill + left bar. */
+.tree-row.tree-row-selected {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent, #5fd4ff);
+}
+.tree-row.tree-row-selected:hover {
+  background: var(--accent-subtle);
+}
+.tree-leaf-nonact .tree-row.tree-row-selected {
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+}
+
+/* ── Tree Badge / Shape ── */
+.tree-badge {
+  display: inline-block;
+  padding: 2px var(--sp-2);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-subtle);
+  border-radius: 999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tree-shape {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Tree Leaf ── */
+.tree-leaf {
+  cursor: default;
+}
+
+.tree-leaf .tree-row {
+  gap: var(--sp-1);
+}
+
+/* Non-activation layers (metadata/shape tensors with no 3D frame): greyed
+ * out, non-interactive, with a hover tooltip explaining the exclusion. */
+.tree-leaf-nonact {
+  opacity: 0.45;
+}
+.tree-leaf-nonact .tree-row {
+  cursor: not-allowed;
+}
+.tree-leaf-nonact .tree-row:hover {
+  background: transparent;
+}
+.tree-leaf-nonact .tree-label {
+  color: var(--text-secondary);
+}
+
+/* ── Tree Detail Panel ── */
+.tree-detail-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+}
+
+.tree-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.tree-detail-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-detail-close {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.tree-detail-body {
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+.tree-detail-output {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  flex: 1;
+  min-width: 180px;
+  max-width: 240px;
+}
+
+.tree-detail-output-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-detail-canvas {
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.tree-detail-error {
+  font-size: var(--text-xs);
+  color: var(--error, #e5484d);
+  padding: var(--sp-4);
+  text-align: center;
+}
+
+/* ── Viz Controls (colormap, scale, point size, layer gap, density) ── */
+/* ── Floating View-controls window (draggable over the canvas) ── */
+.viz-floating {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  z-index: 6;
+  width: 340px;
+  max-width: calc(100% - 2 * var(--sp-3));
+  max-height: calc(100% - 2 * var(--sp-3));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  user-select: none;
+}
+
+.viz-floating-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-3);
+  cursor: grab;
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.viz-floating-header.dragging {
+  cursor: grabbing;
+}
+
+.viz-floating-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.viz-floating-collapse {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.viz-floating-body {
+  padding: var(--sp-3);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.viz-floating.collapsed .viz-floating-body {
+  display: none;
+}
+
+.viz-floating.collapsed .viz-floating-header {
+  border-bottom: none;
+}
+
+.viz-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.viz-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.viz-label {
+  flex: 0 0 5rem;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.viz-row .select,
+.viz-row .scrubber {
+  flex: 1;
+  min-width: 0;
+}
+
+.viz-row-check {
+  padding-top: var(--sp-1);
+  border-top: 1px solid var(--bg-tertiary);
+}
+.viz-row-check .checkbox-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── Output Cards ── */
+.output-card {
+  padding: var(--sp-4);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.output-header {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--sp-2);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.output-canvas {
+  width: 100%;
+  height: auto;
+  max-height: 120px;
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.output-stats {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--sp-1);
+}
+
+/* ── Input Shape Dims ── */
+.input-shape-dims {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+/* ── Layer Hover Tooltip (3D view, follows the cursor) ── */
+.layer-tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.72);
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.layer-tooltip .lt-name {
+  font-weight: 600;
+  color: #fff;
+}
+
+.layer-tooltip .lt-op {
+  color: var(--accent);
+  margin-left: 6px;
+}
+
+.layer-tooltip .lt-shape {
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Panel Collapse / Expand ──
+   Two-phase animation: the grid track width slides (transition on
+   .app-main) while the header/body cross-fade. panels.js stages the
+   .fading / .starting / .collapsed classes so the opacity transition
+   plays before display flips (display:none can't transition). */
+.panel-collapsed-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-2);
+  flex-shrink: 0;
+}
+
+.panel-expand-btn {
+  opacity: 0.5;
+  transition: opacity 0.12s;
+}
+
+.panel-expand-btn:hover {
+  opacity: 1;
+}
+
+.panel-toggle-btn {
+  margin-left: auto;
+  opacity: 0.4;
+  transition: opacity 0.12s;
+}
+
+.panel-toggle-btn:hover {
+  opacity: 0.8;
+}
+
+/* Header/body fade with the width slide. */
+.panel-header,
+.panel-body {
+  transition: opacity 0.16s ease;
+}
+
+/* Collapsing: fade content out before display:none lands. */
+.panel.fading .panel-header,
+.panel.fading .panel-body {
+  opacity: 0;
+}
+
+/* Expanding from fully-collapsed: start faded out, then fade in. */
+.panel.starting .panel-header,
+.panel.starting .panel-body {
+  opacity: 0;
+}
+
+.panel.collapsed {
+  overflow: hidden;
+}
+
+.panel.collapsed .panel-header,
+.panel.collapsed .panel-body {
+  display: none;
+}
+
+.panel.collapsed .panel-collapsed-bar {
+  display: flex;
+}
+
+.panel-resizing {
+  user-select: none;
+}
+
+.panel-resizing * {
+  pointer-events: none;
+}
+
+/* Suppress the width slide during live drag (would feel mushy) and
+   during the initial width setup in panels.js (would slide on load). */
+.panel-resizing .app-main,
+.app-main.no-anim {
+  transition: none;
+}
+
+/* ── Resize Handles ── */
+.resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  z-index: 5;
+}
+
+.resize-handle:hover {
+  background: var(--accent-subtle);
+}
+
+.resize-handle:active {
+  background: var(--accent);
+}
+
+/* ── Canvas States ──
+   Overlays that sit on top of the full-bleed 3D canvas. Opaque so the
+   empty dark scene doesn't bleed through; z-index above the canvas but
+   below the hover heatmap (z-index:10). */
+.canvas-empty-state,
+.canvas-loading-state,
+.canvas-error-state {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-8) var(--sp-4);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  background: var(--bg-tertiary);
+}
+
+.canvas-empty-state .hint,
+.canvas-loading-state .hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--sp-2);
+}
+
+.canvas-error-state .error-text {
+  color: var(--error);
+  font-size: var(--text-sm);
+  margin-bottom: var(--sp-3);
+}
+
+/* ── Tree States ── */
+.tree-empty-state,
+.tree-loading-state,
+.tree-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-8) var(--sp-4);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.tree-empty-state .hint,
+.tree-loading-state .hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--sp-2);
+}
+
+.tree-error-state .error-text {
+  color: var(--error);
+  font-size: var(--text-sm);
+  margin-bottom: var(--sp-3);
+}
+
+/* ── Connection info panel (inside the View controls window) ── */
+.conn-info {
+  margin-top: var(--sp-2);
+  border-top: 1px solid var(--bg-tertiary);
+  padding-top: var(--sp-2);
+  /* Whitespace below the list + a FIXED height (not max-height): each layer
+     has a different connection count, so a shrinking panel would shift the
+     rows under the cursor as you click through them. A fixed footprint keeps
+     the positions stable; short lists leave the gap as breathing room and
+     long lists scroll inside it. */
+  padding-bottom: var(--sp-3);
+  font-size: var(--text-xs);
+  height: 220px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+.conn-info[hidden] { display: none; }
+.conn-header {
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: var(--sp-1);
+  word-break: break-word;
+}
+.conn-empty {
+  color: var(--text-tertiary);
+}
+.conn-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px 4px;
+  margin: 0 -4px;
+  border-bottom: 1px solid var(--bg-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.12s ease;
+}
+.conn-row:hover {
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.06));
+}
+.conn-row:last-child { border-bottom: none; }
+.conn-dir {
+  flex: 0 0 auto;
+  width: 16px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.conn-dir-out { color: #5fd4ff; }
+.conn-dir-in { color: #c98aff; }
+.conn-name {
+  flex: 1 1 auto;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.conn-op {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+.conn-span {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+}
+.conn-meter {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 84px;
+}
+.conn-bar {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+  min-width: 30px;
+  transition: width 120ms ease;
+}
+.conn-score {
+  flex: 0 0 auto;
+  width: 26px;
+  text-align: right;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Watch list (pinned layers) ── */
+.watchlist {
+  margin-top: var(--sp-2);
+  border-top: 1px solid var(--bg-tertiary);
+  padding-top: var(--sp-1);
+}
+.watchlist-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-bottom: 2px;
+}
+.watchlist-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.watchlist-count {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.watchlist-clear {
+  margin-left: auto;
+  padding: 0 6px;
+  font-size: var(--text-xs);
+}
+.watchlist-empty {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  padding: var(--sp-1) 0;
+}
+.watchlist-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.watchlist-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  padding: 3px 4px;
+  margin: 0 -4px;
+  border-radius: 3px;
+}
+.watchlist-row-nav {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.watchlist-row-nav:hover {
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.06));
+}
+.watchlist-row-missing {
+  opacity: 0.5;
+}
+.watchlist-star {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  padding: 0 2px;
+  line-height: 1.4;
+}
+.watchlist-star:hover {
+  color: var(--danger, #d33);
+}
+.watchlist-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.watchlist-name {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.watchlist-detail {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Responsive: 360px — minimal ── */
+@media (max-width: 360px) {
+  .app-title {
+    font-size: var(--text-sm);
+  }
+
+  .header-controls {
+    display: none;
+  }
+}
